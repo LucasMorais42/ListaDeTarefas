@@ -27,19 +27,7 @@ const reducer = (state:{counter:number;}, action:{type:string;}) => {
 }
 
 export default function App() {
-  const [state, dispatch] = useReducer(reducer, {counter:0})
 
-  const adicionar = () => {
-    dispatch({type:"adicionar"})
-  }
-
-  const retirar = () => {
-    dispatch({type:"retirar"})
-  }
-
-  const zerar = () => {
-    dispatch({type:"zerar"})
-  }
 
   return (
     <View style={styles.container}>
