@@ -1,17 +1,45 @@
 import React, { useState, useReducer } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View, TextInput, Button } from "react-native";
 
-const listener = (state: any, action: any) => {
+import { Task } from "../ListaDeTarefas/types/Task";
+
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  Button,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
+
+type State = {
+  tasks: Task[];
+};
+
+type Action =
+  | {
+      type: "add-new-task";
+      inputValue: string;
+    }
+  | {
+      type: "toggle-task";
+      id: number;
+    }
+  | {
+      type: "delete-done";
+    };
+
+const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "add-new-task":
       return {
         tasks: [
           ...state.tasks,
           {
-            id: Math.round(Math.PI * Date.now() + Math.random()) % 1008,
+            id: Date.now(),
             name: action.inputValue,
-            isDone: false,
+            completed: false,
             selected: false,
           },
         ],
@@ -19,14 +47,19 @@ const listener = (state: any, action: any) => {
 
     case "toggle-task":
       return {
-        tasks: state.tasks.map((task: any) =>
-          task.id === action.id ? { ...task, selected: !task.selected } : task,
+        tasks: state.tasks.map((task) =>
+          task.id === action.id
+            ? {
+                ...task,
+                completed: !task.completed,
+              }
+            : task,
         ),
       };
 
-    case "delete-selected":
+    case "delete-done":
       return {
-        tasks: state.tasks.filter((task: any) => !task.selected),
+        tasks: state.tasks.filter((task) => !task.completed),
       };
 
     default:
@@ -35,51 +68,89 @@ const listener = (state: any, action: any) => {
 };
 
 export default function App() {
-  const [state, dispatch] = useReducer(listener, { tasks: [] });
-  const [inputValue, setInputValue] = useState("");
+  const [state, dispatch] = useReducer(reducer, {
+    tasks: [],
+  });
+
+  const [inputValue, setInputValue] = useState<string>("");
 
   const handleAddTask = () => {
-    //console.log(inputValue)
-    dispatch({ type: "add-new-task", inputValue });
+    if (!inputValue.trim()) return;
+
+    dispatch({
+      type: "add-new-task",
+      inputValue,
+    });
+
     setInputValue("");
   };
 
-  const deleteSelectedTasks = () => {
-    dispatch({ type: "delete-selected" });
+  const deleteDoneTasks = () => {
+    dispatch({
+      type: "delete-done",
+    });
   };
 
   return (
     <View style={styles.container}>
+      <Text style={styles.title}>📝 Lista de Tarefas</Text>
+
+      <Text style={styles.counter}>Total de tarefas: {state.tasks.length}</Text>
+
       <View style={styles.inline}>
         <TextInput
-          style={styles.enter}
+          style={styles.input}
+          placeholder="Digite uma tarefa..."
+          placeholderTextColor="#ccc"
           value={inputValue}
           onChangeText={(text) => setInputValue(text)}
-        ></TextInput>
-        <Button title="adicionar tarefa" onPress={handleAddTask}></Button>
+        />
+
+        <Button title="Adicionar" onPress={handleAddTask} />
       </View>
 
-      {state.tasks.map((task: any) => (
-        <Text
-          key={task.id}
-          onPress={() => dispatch({ type: "toggle-task", id: task.id })}
-          style={[
-            styles.enter,
-            {
-              marginTop: 10,
-              marginBottom: 5,
-              textAlign: "center",
-              paddingVertical: 10,
-              backgroundColor: task.selected ? "red" : "blue",
-            },
-          ]}
-        >
-          id: {task.id} - {task.name}
-        </Text>
-      ))}
-      <Button title="deletar tarefas" onPress={deleteSelectedTasks}></Button>
+      <ScrollView style={styles.tasksContainer}>
+        {state.tasks.map((task: Task) => (
+          <TouchableOpacity
+            key={task.id}
+            onPress={() =>
+              dispatch({
+                type: "toggle-task",
+                id: task.id,
+              })
+            }
+            style={[
+              styles.taskCard,
+              {
+                backgroundColor: task.completed ? "#4CAF50" : "#5450D6",
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.taskText,
+                {
+                  textDecorationLine: task.completed ? "line-through" : "none",
 
-      <StatusBar style="auto" />
+                  opacity: task.completed ? 0.7 : 1,
+                },
+              ]}
+            >
+              {task.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <View style={styles.deleteButton}>
+        <Button
+          title="Deletar concluídas"
+          onPress={deleteDoneTasks}
+          color="#E53935"
+        />
+      </View>
+
+      <StatusBar style="light" />
     </View>
   );
 }
@@ -89,22 +160,60 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#4939BA",
     alignItems: "center",
-    justifyContent: "center",
+    paddingTop: 80,
+    paddingHorizontal: 20,
   },
-  big: {
-    fontSize: 40,
-    fontWeight: 800,
+
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 10,
   },
+
+  counter: {
+    color: "white",
+    fontSize: 16,
+    marginBottom: 20,
+  },
+
   inline: {
     flexDirection: "row",
-    width: "50%",
-    justifyContent: "center",
+    width: "100%",
+    marginBottom: 20,
+    gap: 10,
   },
-  enter: {
+
+  input: {
+    flex: 1,
     borderColor: "#fff",
     borderWidth: 1,
     backgroundColor: "#5450D6",
-    width: "80%",
     color: "white",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
+
+  tasksContainer: {
+    width: "100%",
+  },
+
+  taskCard: {
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+
+  taskText: {
+    color: "white",
+    fontSize: 18,
+    textAlign: "center",
+  },
+
+  deleteButton: {
+    width: "100%",
+    marginTop: 10,
+    marginBottom: 30,
   },
 });
